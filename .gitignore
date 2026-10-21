@@ -1,0 +1,22 @@
+# Build output
+target/
+*.log
+
+# Secrets and local environment
+.env
+.env.*
+!.env.example
+*.p12
+*.jks
+*.pem
+*.key
+*.crt
+
+# Replay uploads stored locally
+data/
+
+# IDE
+.idea/
+.vscode/
+*.iml
+.DS_Store

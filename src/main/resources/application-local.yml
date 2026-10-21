@@ -1,0 +1,49 @@
+# Local development overrides. Secrets still come from the environment (.env).
+spring:
+  datasource:
+    url: ${ST_DB_URL:jdbc:postgresql://localhost:5432/stellartrack}
+    username: ${ST_DB_USERNAME:}
+    password: ${ST_DB_PASSWORD:}
+  # Layer 1/2/3 publish on the default vhost "/" of the local broker; Phase 2 must use the same broker and vhost.
+  rabbitmq:
+    username: ${ST_RABBITMQ_USERNAME:guest}
+    password: ${ST_RABBITMQ_PASSWORD:guest}
+    virtual-host: ${ST_RABBITMQ_VHOST:/}
+
+stellartrack:
+  security:
+    public-api-docs: true
+    refresh-cookie:
+      secure: false
+    cors:
+      allowed-origins: ${ST_CORS_ALLOWED_ORIGINS:http://localhost:5173}
+  messaging:
+    declare-owned-topology: ${ST_MESSAGING_DECLARE_TOPOLOGY:true}
+    # Own queues bound to the layers' exchange: Layer 2/3 keep their queues and all of their messages.
+    # Freshness is off so historical CSV replays (race-hit-service) are not marked STALE.
+    layers:
+      LAYER1:
+        enabled: ${ST_LAYER1_ENABLED:true}
+        queue: ${ST_LAYER1_QUEUE:stellartrack.phase2.layer1}
+        exchange: ${ST_LAYER1_EXCHANGE:stellar-track-exchange}
+        routing-keys: ${ST_LAYER1_ROUTING_KEYS:layer1.prediction,layer1-predictions-queue}
+        declare-subscription: ${ST_LAYER1_DECLARE_SUBSCRIPTION:true}
+        reject-stale: ${ST_LAYER1_REJECT_STALE:false}
+      LAYER2:
+        enabled: ${ST_LAYER2_ENABLED:true}
+        queue: ${ST_LAYER2_QUEUE:stellartrack.phase2.layer2}
+        exchange: ${ST_LAYER2_EXCHANGE:stellar-track-exchange}
+        routing-keys: ${ST_LAYER2_ROUTING_KEYS:state-change}
+        declare-subscription: ${ST_LAYER2_DECLARE_SUBSCRIPTION:true}
+        reject-stale: ${ST_LAYER2_REJECT_STALE:false}
+      LAYER3:
+        enabled: ${ST_LAYER3_ENABLED:true}
+        queue: ${ST_LAYER3_QUEUE:stellartrack.phase2.layer3}
+        exchange: ${ST_LAYER3_EXCHANGE:stellar-track-exchange}
+        routing-keys: ${ST_LAYER3_ROUTING_KEYS:layer3.reranked}
+        declare-subscription: ${ST_LAYER3_DECLARE_SUBSCRIPTION:true}
+        reject-stale: ${ST_LAYER3_REJECT_STALE:false}
+
+logging:
+  level:
+    com.stellartrack: DEBUG

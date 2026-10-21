@@ -1,0 +1,16 @@
+# Production profile. TLS is terminated at the reverse proxy (see docs/operations/deployment.md).
+spring:
+  rabbitmq:
+    ssl:
+      enabled: ${ST_RABBITMQ_SSL_ENABLED:true}
+
+springdoc:
+  swagger-ui:
+    enabled: ${ST_SWAGGER_UI_ENABLED:false}
+
+stellartrack:
+  security:
+    refresh-cookie:
+      secure: true
+  messaging:
+    declare-owned-topology: ${ST_MESSAGING_DECLARE_TOPOLOGY:false}

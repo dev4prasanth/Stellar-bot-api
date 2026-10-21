@@ -1,0 +1,31 @@
+# Test profile: connection details come from Testcontainers (@ServiceConnection). Test-only secrets.
+spring:
+  datasource:
+    url: jdbc:postgresql://overridden-by-testcontainers/test
+    username: test
+    password: test
+  rabbitmq:
+    username: guest
+    password: guest
+
+stellartrack:
+  security:
+    jwt:
+      # base64("test-only-secret-for-automated-tests-not-production!") - never used outside tests
+      secret: dGVzdC1vbmx5LXNlY3JldC1mb3ItYXV0b21hdGVkLXRlc3RzLW5vdC1wcm9kdWN0aW9uIQ==
+    refresh-cookie:
+      secure: false
+    cors:
+      allowed-origins: http://localhost:5173
+    login:
+      max-attempts-per-minute: 1000
+  automation:
+    worker-enabled: false
+  watch:
+    worker-enabled: false
+  replay:
+    storage-dir: ${java.io.tmpdir}/stellartrack-test-replay
+
+logging:
+  level:
+    com.stellartrack: INFO

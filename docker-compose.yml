@@ -1,0 +1,79 @@
+# Local development infrastructure for the Stellar Track backend.
+# Usage (from the backend repository root; Compose picks up .env automatically):
+#   cp .env.example .env   # then fill in values
+#   docker compose up -d postgres rabbitmq
+# The backend service is optional (profile "app"); most developers run it from their IDE.
+# The frontend is deployed from its own repository and reaches this backend through BACKEND_URL.
+name: stellar-track
+
+services:
+  postgres:
+    image: postgres:18-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB:-stellartrack}
+      POSTGRES_USER: ${POSTGRES_USER:?set POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?set POSTGRES_PASSWORD}
+    ports:
+      - "${POSTGRES_PORT:-5433}:5432"
+    volumes:
+      - postgres-data:/var/lib/postgresql
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U $${POSTGRES_USER} -d $${POSTGRES_DB}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  rabbitmq:
+    image: rabbitmq:4-management-alpine
+    restart: unless-stopped
+    environment:
+      RABBITMQ_DEFAULT_USER: ${RABBITMQ_USER:?set RABBITMQ_USER}
+      RABBITMQ_DEFAULT_PASS: ${RABBITMQ_PASSWORD:?set RABBITMQ_PASSWORD}
+      # Layer 1/2/3 use the default vhost "/"; keep Phase 2 on the same vhost.
+      RABBITMQ_DEFAULT_VHOST: ${RABBITMQ_VHOST:-/}
+    ports:
+      - "${RABBITMQ_PORT:-5672}:5672"
+      - "${RABBITMQ_MANAGEMENT_PORT:-15672}:15672"
+    volumes:
+      - rabbitmq-data:/var/lib/rabbitmq
+    healthcheck:
+      test: ["CMD", "rabbitmq-diagnostics", "-q", "ping"]
+      interval: 15s
+      timeout: 10s
+      retries: 5
+
+  backend:
+    profiles: ["app"]
+    build:
+      context: .
+    env_file: .env
+    environment:
+      SPRING_PROFILES_ACTIVE: ${SPRING_PROFILES_ACTIVE:-local}
+      ST_DB_URL: jdbc:postgresql://postgres:5432/${POSTGRES_DB:-stellartrack}
+      ST_RABBITMQ_HOST: ${ST_RABBITMQ_DOCKER_HOST:-rabbitmq}
+      ST_RABBITMQ_VHOST: ${ST_RABBITMQ_VHOST:-/}
+      ST_LAYER1_EXCHANGE: ${ST_LAYER1_EXCHANGE:-stellar-track-exchange}
+      ST_LAYER1_ROUTING_KEYS: ${ST_LAYER1_ROUTING_KEYS:-layer1.prediction,layer1-predictions-queue}
+      ST_LAYER2_EXCHANGE: ${ST_LAYER2_EXCHANGE:-stellar-track-exchange}
+      ST_LAYER2_ROUTING_KEYS: ${ST_LAYER2_ROUTING_KEYS:-state-change}
+      ST_LAYER3_EXCHANGE: ${ST_LAYER3_EXCHANGE:-stellar-track-exchange}
+      ST_LAYER3_ROUTING_KEYS: ${ST_LAYER3_ROUTING_KEYS:-layer3.reranked}
+      # Inside the container the keystore is read from the mounted certificate folder (the host path in
+      # ST_BETFAIR_CERT_KEYSTORE is for running the backend outside Docker).
+      ST_BETFAIR_CERT_KEYSTORE: /run/secrets/betfair/${ST_BETFAIR_CERT_FILE:-client.p12}
+    depends_on:
+      postgres:
+        condition: service_healthy
+      rabbitmq:
+        condition: service_healthy
+    ports:
+      - "8080:8080"
+    volumes:
+      - ${ST_BETFAIR_CERT_DIR:-./certificate}:/run/secrets/betfair:ro
+      - replay-data:/var/lib/stellartrack/replay
+
+volumes:
+  postgres-data:
+  rabbitmq-data:
+  replay-data:

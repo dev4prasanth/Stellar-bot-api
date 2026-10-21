@@ -1,0 +1,217 @@
+# Stellar Track backend configuration.
+# Every secret is read from the environment; no credential has a usable default.
+spring:
+  application:
+    name: stellar-track
+  threads:
+    virtual:
+      enabled: true
+  lifecycle:
+    timeout-per-shutdown-phase: 30s
+  datasource:
+    url: ${ST_DB_URL}
+    username: ${ST_DB_USERNAME}
+    password: ${ST_DB_PASSWORD}
+    hikari:
+      maximum-pool-size: ${ST_DB_POOL_SIZE:15}
+      connection-timeout: 10000
+  jpa:
+    open-in-view: false
+    hibernate:
+      ddl-auto: validate
+    properties:
+      hibernate:
+        jdbc:
+          time_zone: UTC
+        timezone:
+          default_storage: NORMALIZE_UTC
+  flyway:
+    enabled: true
+    locations: classpath:db/migration
+    validate-on-migrate: true
+    clean-disabled: true
+    baseline-on-migrate: false
+    out-of-order: false
+  rabbitmq:
+    host: ${ST_RABBITMQ_HOST:localhost}
+    port: ${ST_RABBITMQ_PORT:5672}
+    username: ${ST_RABBITMQ_USERNAME:}
+    password: ${ST_RABBITMQ_PASSWORD:}
+    virtual-host: ${ST_RABBITMQ_VHOST:/}
+    ssl:
+      enabled: ${ST_RABBITMQ_SSL_ENABLED:false}
+    connection-timeout: 10s
+    requested-heartbeat: 30s
+    publisher-confirm-type: simple
+    listener:
+      simple:
+        auto-startup: false
+  servlet:
+    multipart:
+      max-file-size: ${ST_UPLOAD_MAX_FILE_SIZE:20MB}
+      max-request-size: ${ST_UPLOAD_MAX_FILE_SIZE:20MB}
+  jackson:
+    default-property-inclusion: non_null
+
+server:
+  port: ${ST_SERVER_PORT:8080}
+  shutdown: graceful
+  forward-headers-strategy: framework
+  error:
+    include-stacktrace: never
+    include-message: never
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info,flyway,metrics
+  endpoint:
+    health:
+      probes:
+        enabled: true
+      show-details: when-authorized
+      roles: ADMIN
+  health:
+    rabbit:
+      # Broker health is reported per layer by the ingestion health indicator instead,
+      # so a broker that is intentionally not yet configured does not fail readiness.
+      enabled: false
+
+springdoc:
+  api-docs:
+    path: /v3/api-docs
+  swagger-ui:
+    path: /swagger-ui.html
+
+logging:
+  pattern:
+    correlation: "[%X{correlationId:-}] "
+  level:
+    root: INFO
+    com.stellartrack: INFO
+
+stellartrack:
+  security:
+    jwt:
+      secret: ${ST_JWT_SECRET}
+      issuer: ${ST_JWT_ISSUER:stellar-track}
+      audience: ${ST_JWT_AUDIENCE:stellar-track-web}
+      access-token-ttl: ${ST_JWT_ACCESS_TTL:PT10M}
+      refresh-token-ttl: ${ST_JWT_REFRESH_TTL:PT12H}
+    refresh-cookie:
+      secure: ${ST_REFRESH_COOKIE_SECURE:true}
+    cors:
+      allowed-origins: ${ST_CORS_ALLOWED_ORIGINS:}
+    login:
+      max-failed-attempts: 5
+      lockout-duration: PT15M
+      max-attempts-per-minute: 10
+  messaging:
+    declare-owned-topology: ${ST_MESSAGING_DECLARE_TOPOLOGY:false}
+    max-payload-bytes: ${ST_MESSAGING_MAX_PAYLOAD_BYTES:262144}
+    store-raw-payload: true
+    retry:
+      max-attempts: 5
+      initial-interval: PT2S
+      multiplier: 2.0
+      max-interval: PT2M
+      jitter-ratio: 0.2
+    retry-exchange: stellartrack.ingestion.retry
+    dead-letter-exchange: stellartrack.ingestion.dlx
+    layers:
+      LAYER1:
+        enabled: ${ST_LAYER1_ENABLED:false}
+        queue: ${ST_LAYER1_QUEUE:}
+        exchange: ${ST_LAYER1_EXCHANGE:}
+        routing-keys: ${ST_LAYER1_ROUTING_KEYS:}
+        declare-subscription: ${ST_LAYER1_DECLARE_SUBSCRIPTION:false}
+        concurrency: 1
+        prefetch: 10
+        freshness-max-age: ${ST_LAYER1_MAX_AGE:PT15M}
+        reject-stale: ${ST_LAYER1_REJECT_STALE:true}
+      LAYER2:
+        enabled: ${ST_LAYER2_ENABLED:false}
+        queue: ${ST_LAYER2_QUEUE:}
+        exchange: ${ST_LAYER2_EXCHANGE:}
+        routing-keys: ${ST_LAYER2_ROUTING_KEYS:}
+        declare-subscription: ${ST_LAYER2_DECLARE_SUBSCRIPTION:false}
+        concurrency: 1
+        prefetch: 10
+        freshness-max-age: ${ST_LAYER2_MAX_AGE:PT15M}
+        reject-stale: ${ST_LAYER2_REJECT_STALE:true}
+      LAYER3:
+        enabled: ${ST_LAYER3_ENABLED:false}
+        queue: ${ST_LAYER3_QUEUE:}
+        exchange: ${ST_LAYER3_EXCHANGE:}
+        routing-keys: ${ST_LAYER3_ROUTING_KEYS:}
+        declare-subscription: ${ST_LAYER3_DECLARE_SUBSCRIPTION:false}
+        concurrency: 1
+        prefetch: 10
+        freshness-max-age: ${ST_LAYER3_MAX_AGE:PT15M}
+        reject-stale: ${ST_LAYER3_REJECT_STALE:true}
+    # Approved Layer venueId -> Betfair venue mapping (see docs/integrations/rabbitmq-contracts.md). Empty = unmapped.
+    betfair-mapping:
+      venues: {}
+
+  betfair:
+    enabled: ${ST_BETFAIR_ENABLED:false}
+    app-key: ${ST_BETFAIR_APP_KEY:}
+    username: ${ST_BETFAIR_USERNAME:}
+    password: ${ST_BETFAIR_PASSWORD:}
+    cert-keystore: ${ST_BETFAIR_CERT_KEYSTORE:}
+    cert-keystore-password: ${ST_BETFAIR_CERT_KEYSTORE_PASSWORD:}
+    cert-login-url: ${ST_BETFAIR_CERT_LOGIN_URL:https://identitysso-cert.betfair.com/api/certlogin}
+    identity-url: ${ST_BETFAIR_IDENTITY_URL:https://identitysso.betfair.com/api}
+    betting-url: ${ST_BETFAIR_BETTING_URL:https://api.betfair.com/exchange/betting/json-rpc/v1}
+    account-url: ${ST_BETFAIR_ACCOUNT_URL:https://api.betfair.com/exchange/account/json-rpc/v1}
+    account-management-url: ${ST_BETFAIR_ACCOUNT_MGMT_URL:https://myaccount.betfair.com/}
+    locale: en
+    keep-alive-interval: PT30M
+    connect-timeout: PT5S
+    read-timeout: PT10S
+    order-timeout: PT15S
+    read-retry:
+      max-attempts: 3
+      initial-interval: PT0.5S
+    stream:
+      enabled: ${ST_BETFAIR_STREAM_ENABLED:false}
+      host: ${ST_BETFAIR_STREAM_HOST:stream-api.betfair.com}
+      port: 443
+      heartbeat: PT5S
+      conflate: PT0S
+      reconnect-max-backoff: PT60S
+    staleness:
+      market-book-max-age: PT10S
+      funds-max-age: PT2M
+    customer-strategy-ref: STELLARTRACK
+    minimum-stake: ${ST_BETFAIR_MIN_STAKE:1.00}
+
+  automation:
+    worker-enabled: ${ST_AUTOMATION_WORKER_ENABLED:true}
+    tick-interval: PT5S
+    lease-ttl: PT30S
+    restart-policy: NEVER_RESUME
+
+  # Watch Mode: simulated bets on real (possibly delayed) market data. Never places a real bet.
+  watch:
+    worker-enabled: ${ST_WATCH_WORKER_ENABLED:true}
+    tick-interval: PT5S
+    lease-ttl: PT30S
+    slippage-ticks: ${ST_WATCH_SLIPPAGE_TICKS:1}
+    default-commission-rate: 5.0
+
+  reconciliation:
+    current-orders-interval: PT20S
+    cleared-orders-interval: PT5M
+    cleared-orders-lookback: P7D
+    statement-interval: PT10M
+    funds-interval: PT1M
+    market-results-interval: PT5M
+
+  replay:
+    storage-dir: ${ST_REPLAY_STORAGE_DIR:./data/replay}
+    allowed-extensions: csv,json
+
+  reporting:
+    default-time-zone: Europe/London

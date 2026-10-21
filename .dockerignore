@@ -1,0 +1,7 @@
+target/
+*.iml
+.idea/
+.env*
+# Local secrets (Betfair keystore) never enter the build context
+certificate/
+docs/

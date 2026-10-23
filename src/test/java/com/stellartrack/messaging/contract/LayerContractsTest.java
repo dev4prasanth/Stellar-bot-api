@@ -169,12 +169,21 @@ class LayerContractsTest {
         }
 
         @Test
+        void acceptsStrengthAbove100UpToLayer2Maximum() {
+            String body = LayerSamples.layer2Iso(CARD, 2, at).replace("\"strengthScore\":88", "\"strengthScore\":190");
+            NormalizedLayerRecord record = l2.apply(message(Layer.LAYER2, body, "state-change", Map.of()));
+            @SuppressWarnings("unchecked")
+            Map<String, Map<String, Object>> states = (Map<String, Map<String, Object>>) record.payload().get("states");
+            assertThat(states.get("MARS")).containsEntry("strengthScore", 190);
+        }
+
+        @Test
         void rejectsUnknownPlanetsAndOutOfRangeStrength() {
             String body = LayerSamples.layer2EpochSeconds(CARD, 2, at);
             assertInvalid(l2, message(Layer.LAYER2, body.replace("\"SUN\":{", "\"PLUTO\":{"), "state-change", Map.of()),
                     ErrorClass.SCHEMA_VALIDATION, "unknown planet PLUTO");
-            assertInvalid(l2, message(Layer.LAYER2, body.replace("\"strengthScore\":88", "\"strengthScore\":120"), "state-change", Map.of()),
-                    ErrorClass.SCHEMA_VALIDATION, "strengthScore of MARS must be 0-100");
+            assertInvalid(l2, message(Layer.LAYER2, body.replace("\"strengthScore\":88", "\"strengthScore\":250"), "state-change", Map.of()),
+                    ErrorClass.SCHEMA_VALIDATION, "strengthScore of MARS must be 0-200");
             assertInvalid(l2, message(Layer.LAYER2, body.replace("\"raceNumber\":2,\"timestamp\"", "\"raceNumber\":0,\"timestamp\""), "state-change", Map.of()),
                     ErrorClass.SCHEMA_VALIDATION, "raceNumber must be an integer >= 1");
         }

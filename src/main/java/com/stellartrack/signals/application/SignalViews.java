@@ -20,10 +20,14 @@ public final class SignalViews {
         NOT_EXPECTED
     }
 
+    /**
+     * @param lastRaceWinner   winning runner of {@code lastRaceProcessed}, from Layer 2's card context (0: none)
+     * @param contextUpdatedAt Layer 2 timestamp of the message that last updated the card context
+     */
     public record CardSummary(String cardId, String venueId, String betfairVenue, LocalDate raceDate,
             Integer totalRaces, int racesSeen, long layer1Races, long layer2Races, long layer3Races,
             List<String> inPlanets, List<String> outPlanets, String scenario, Integer currentOutStreak,
-            Integer lastRaceProcessed, Instant updatedAt) {
+            Integer lastRaceProcessed, Integer lastRaceWinner, Instant contextUpdatedAt, Instant updatedAt) {
     }
 
     public record RaceSummary(int raceNumber, LayerState layer1, LayerState layer2, LayerState layer3,
@@ -47,7 +51,7 @@ public final class SignalViews {
     public record PlanetState(String planet, String stateCode, String stateName, Integer strengthScore,
             String authorityLevel, String momentum, Integer winCount, Integer top4Count, Integer absenceDuration,
             Integer racesSinceLastWin, Object triggeringRules, Object contextFlags, Object positionTrend,
-            String rulesetVersion) {
+            String rulesetVersion, Instant sourceEventAt) {
     }
 
     /** Planetary states after race {@code inputRaceNumber} (N − 1): the states Layer 3 used for race N. */

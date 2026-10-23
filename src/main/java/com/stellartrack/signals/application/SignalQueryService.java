@@ -52,7 +52,8 @@ public class SignalQueryService {
 
     private static final String CARD_SELECT = """
             select c.card_id, c.venue_id, c.race_date, c.total_races, c.in_planets::text as in_planets,
-                c.out_planets::text as out_planets, c.scenario, c.current_out_streak, c.last_race_processed, c.updated_at,
+                c.out_planets::text as out_planets, c.scenario, c.current_out_streak, c.last_race_processed, c.last_race_winner,
+                c.context_updated_at, c.updated_at,
                 (select count(*) from race_signal_l1_prediction p where p.card_id = c.card_id) as l1_races,
                 (select count(distinct s.race_number) from race_signal_planetary_state s where s.card_id = c.card_id) as l2_races,
                 (select count(distinct r.race_number) from race_signal_l3_ranking r where r.card_id = c.card_id) as l3_races,
@@ -198,7 +199,7 @@ public class SignalQueryService {
                     integer(rs, "win_count"), integer(rs, "top4_count"), integer(rs, "absence_duration"),
                     integer(rs, "races_since_last_win"), plain(rs.getString("triggering_rules")),
                     plain(rs.getString("context_flags")), plain(rs.getString("position_trend")),
-                    rs.getString("ruleset_version"));
+                    rs.getString("ruleset_version"), instant(rs, "source_event_at"));
         }));
         List<String> order = Arrays.stream(Planet.values()).map(Enum::name).toList();
         states.sort(Comparator.comparingInt(s -> order.indexOf(s.planet())));
@@ -292,7 +293,8 @@ public class SignalQueryService {
                 rs.getDate("race_date").toLocalDate(), integer(rs, "total_races"), rs.getInt("max_race"),
                 rs.getLong("l1_races"), rs.getLong("l2_races"), rs.getLong("l3_races"),
                 strings(rs.getString("in_planets")), strings(rs.getString("out_planets")), rs.getString("scenario"),
-                integer(rs, "current_out_streak"), integer(rs, "last_race_processed"), instant(rs, "updated_at"));
+                integer(rs, "current_out_streak"), integer(rs, "last_race_processed"), integer(rs, "last_race_winner"),
+                instant(rs, "context_updated_at"), instant(rs, "updated_at"));
     }
 
     private List<String> strings(String jsonArray) {

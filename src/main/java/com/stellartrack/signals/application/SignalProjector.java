@@ -185,6 +185,7 @@ public class SignalProjector {
                         scenario = coalesce(:scenario, scenario),
                         current_out_streak = coalesce(:outStreak, current_out_streak),
                         last_race_processed = coalesce(:lastRace, last_race_processed),
+                        last_race_winner = coalesce(:lastWinner, last_race_winner),
                         context_updated_at = :sourceEventAt
                     where card_id = :cardId and (context_updated_at is null or context_updated_at <= :sourceEventAt)
                     """, new MapSqlParameterSource(base.getValues())
@@ -194,6 +195,7 @@ public class SignalProjector {
                     .addValue("scenario", text(context, "scenario"))
                     .addValue("outStreak", integer(context, "currentOutStreak"))
                     .addValue("lastRace", integer(context, "lastRaceProcessed"))
+                    .addValue("lastWinner", integer(context, "lastRaceWinner"))
                     .addValue("sourceEventAt", sourceEventAt));
         }
     }

@@ -54,7 +54,7 @@ spring:
     default-property-inclusion: non_null
 
 server:
-  port: ${ST_SERVER_PORT:8080}
+  port: ${ST_SERVER_PORT:7070}
   shutdown: graceful
   forward-headers-strategy: framework
   error:

@@ -9,6 +9,9 @@ import java.util.Map;
 
 public class Layer2StateChangeValidator implements LayerMessageValidator<Layer2StateChange> {
 
+    /** Layer 2 clamps its final strength score to 50-200 (rule-based 50-150 plus component adjustments). */
+    static final int MAX_STRENGTH_SCORE = 200;
+
     @Override
     public List<String> validate(Layer2StateChange p) {
         List<String> violations = new ArrayList<>();
@@ -29,8 +32,8 @@ public class Layer2StateChangeValidator implements LayerMessageValidator<Layer2S
                     violations.add("states contains unknown planet " + entry.getKey());
                 }
                 Integer strength = entry.getValue().strengthScore();
-                if (strength == null || strength < 0 || strength > 100) {
-                    violations.add("strengthScore of " + entry.getKey() + " must be 0-100");
+                if (strength == null || strength < 0 || strength > MAX_STRENGTH_SCORE) {
+                    violations.add("strengthScore of " + entry.getKey() + " must be 0-" + MAX_STRENGTH_SCORE);
                 }
             }
         }

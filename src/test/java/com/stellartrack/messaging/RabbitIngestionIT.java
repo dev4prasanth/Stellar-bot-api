@@ -221,6 +221,9 @@ class RabbitIngestionIT extends IntegrationTest {
         assertThat(cards.get(0).path("layer3Races").asInt()).isEqualTo(1);
         assertThat(cards.get(0).path("totalRaces").asInt()).isEqualTo(8);
         assertThat(cards.get(0).path("inPlanets").toString()).isEqualTo("[\"MARS\",\"VENUS\",\"SUN\"]");
+        assertThat(cards.get(0).path("outPlanets").toString()).isEqualTo("[\"MERCURY\",\"MOON\"]");
+        assertThat(cards.get(0).path("lastRaceWinner").asInt()).isEqualTo(5);
+        assertThat(cards.get(0).path("contextUpdatedAt").asString()).isNotBlank();
 
         JsonNode detail = get(token, "/api/v1/signals/cards/" + card);
         JsonNode races = detail.path("races");
@@ -238,6 +241,7 @@ class RabbitIngestionIT extends IntegrationTest {
         assertThat(race.at("/layer2/inputRaceNumber").asInt()).isEqualTo(2);
         assertThat(race.at("/layer2/states")).hasSize(5);
         assertThat(race.at("/layer2/states/0/planet").asString()).isEqualTo("MARS");
+        assertThat(race.at("/layer2/states/0/sourceEventAt").asString()).isNotBlank();
         assertThat(race.at("/layer1/runners/0/planetScore").asInt()).isEqualTo(9);
         assertThat(race.at("/mapping/status").asString()).isEqualTo("VENUE_NOT_MAPPED");
         JsonNode top = race.at("/layer3/rankings/0/runners/0");
